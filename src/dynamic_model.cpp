@@ -97,11 +97,11 @@ public:
 	DynamicModel()
 	{
 		//ROS Publishers for each required simulated ins_2d data
-		dm_pos_pub = n.advertise<geometry_msgs::Pose2D>("/vectornav/ins_2d/ins_pose", 1000);
+		//dm_pos_pub = n.advertise<geometry_msgs::Pose2D>("/vectornav/ins_2d/ins_pose", 1000);
 		local_pos_pub = n.advertise<geometry_msgs::Pose2D>("/vectornav/ins_2d/NED_pose", 1000);
 		dm_vel_pub = n.advertise<geometry_msgs::Vector3>("/vectornav/ins_2d/local_vel", 1000);
-		ardumotors_flag_pub = n.advertise<std_msgs::UInt8>("/arduino_br/ardumotors/flag",1000);
-		arduino_flag_pub = n.advertise<std_msgs::UInt8>("arduino",1000);
+		//ardumotors_flag_pub = n.advertise<std_msgs::UInt8>("/arduino_br/ardumotors/flag",1000);
+		//arduino_flag_pub = n.advertise<std_msgs::UInt8>("arduino",1000);
 		boat_odom_pub = n.advertise<nav_msgs::Odometry>("/usv_control/dynamic_model_simulate/odom", 1000);
 
 		right_thruster_sub = n.subscribe("/usv_control/controller/right_thruster", 1000, &DynamicModel::right_callback, this);
@@ -273,15 +273,16 @@ public:
 		dm_pose.y = y;
 		dm_pose.theta = etheta;
 		odom.pose.pose.position.x = x;
-		odom.pose.pose.position.y = y;
+		odom.pose.pose.position.y = -y;
 		odom.pose.pose.position.z = 0;
 
-		myQuaternion.setRPY(0.00,0.00,etheta);
+		myQuaternion.setRPY(0.00,0.00,-etheta);
 
 		odom.pose.pose.orientation.x = myQuaternion[0];
 		odom.pose.pose.orientation.y = myQuaternion[1];
 		odom.pose.pose.orientation.z = myQuaternion[2];
 		odom.pose.pose.orientation.w = myQuaternion[3];
+
 
 		u = upsilon(0); //surge velocity
 		v = upsilon(1); //sway velocity
@@ -290,23 +291,27 @@ public:
 		dm_vel.y = v;
 		dm_vel.z = r;
 		odom.twist.twist.linear.x = u;
-		odom.twist.twist.linear.y = v;
+		odom.twist.twist.linear.y = -v;
 		odom.twist.twist.linear.z = 0.00;
 
 		odom.twist.twist.angular.x = 0.00;
 		odom.twist.twist.angular.y = 0.00;
-		odom.twist.twist.angular.z = r;
+		odom.twist.twist.angular.z = -r;
+
+		odom.header.stamp = ros::Time::now();
+		odom.header.frame_id = "world";
+
 
 		//Data publishing
-		dm_pos_pub.publish(dm_pose);
+		//dm_pos_pub.publish(dm_pose);
 		dm_vel_pub.publish(dm_vel);
 		local_pos_pub.publish(dm_pose);
 		boat_odom_pub.publish(odom);
 
-		std_msgs::UInt8 flag;
+		/*std_msgs::UInt8 flag;
 		flag.data = 1;
 		arduino_flag_pub.publish(flag);
-		ardumotors_flag_pub.publish(flag);
+		ardumotors_flag_pub.publish(flag);*/
 	}
 
 private:

@@ -215,3 +215,12 @@ include_directories(
 
 add_executable(dynamic_model src/dynamic_model.cpp)
 target_link_libraries(dynamic_model ${catkin_LIBRARIES})
+
+add_executable(boat_tf2_broadcaster src/boat_tf2_broadcaster.cpp)
+target_link_libraries(boat_tf2_broadcaster ${catkin_LIBRARIES})
+
+add_executable(currents src/currents.cpp)
+target_link_libraries(currents ${catkin_LIBRARIES})
+
+add_executable(wind_and_waves src/wind_and_waves.cpp)
+target_link_libraries(wind_and_waves ${catkin_LIBRARIES})
