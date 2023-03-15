@@ -224,3 +224,6 @@ target_link_libraries(currents ${catkin_LIBRARIES})
 
 add_executable(wind_and_waves src/wind_and_waves.cpp)
 target_link_libraries(wind_and_waves ${catkin_LIBRARIES})
+
+add_executable(aitsmc src/aitsmc.cpp)
+target_link_libraries(aitsmc ${catkin_LIBRARIES})
