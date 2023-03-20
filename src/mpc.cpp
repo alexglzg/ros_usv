@@ -28,6 +28,7 @@ class MPC
         float u_d_dot;
         float r_d_dot;
         float starting_flag=0.0;
+        float counter_start = 0.0;
 
         float s = 0.0;
 
@@ -47,8 +48,8 @@ class MPC
             ins_pose_sub = n.subscribe("/vectornav/ins_2d/NED_pose", 1000, &MPC::insCallback, this);
             local_vel_sub = n.subscribe("/vectornav/ins_2d/local_vel", 1000, &MPC::velocityCallback, this);
 
-            app = StageOCPApplicationBuilder::FromRockitInterface("/home/ajay/rockit/rockit/external/fatrop/foobar/casadi_codegen.so",
-         "/home/ajay/rockit/rockit/external/fatrop/foobar/casadi_codegen.json");
+            app = StageOCPApplicationBuilder::FromRockitInterface("/home/alex/Documents/rockit/examples/ASV_examples/foobar/casadi_codegen.so",
+            "/home/alex/Documents/rockit/examples/ASV_examples/foobar/casadi_codegen.json");
             
             ///  no dynamic memory allocation
             // app->Optimize();
@@ -62,8 +63,6 @@ class MPC
             app->SetOption("iterative_refinement", false); // fast_step_computation
             app->SetOption("warm_start_init_point", true);
 
-
-            
         }
 
         void insCallback(const geometry_msgs::Pose2D::ConstPtr& _ins)
@@ -84,7 +83,6 @@ class MPC
         {   
             // TODO: figure out why an extra iteration
             
-
             auto param = app->GetParameterSetter("X_0");
             const double x0[7] = {x, y, psi, u, v, r, s};
             param->SetValue(x0);
@@ -97,7 +95,7 @@ class MPC
             auto eval_r = app->GetExprEvaluator("r")->at_tk(1);
             std::vector<double> r_result(eval_r -> Size());
 
-            auto eval_s = app->GetExprEvaluator("s")->at_tk(1);
+            auto eval_s = app->GetExprEvaluator("s_min")->at_t0();
             std::vector<double> s_result(eval_s -> Size());
 
             app->LastStageOCPSolution().Eval(eval_expression, u0_result);
@@ -105,11 +103,16 @@ class MPC
             app->LastStageOCPSolution().Eval(eval_s, s_result);
             app->SetInitial(app->LastStageOCPSolution());
 
-            desired_speeds.x = 0.3;
+            starting_flag = 1.0;
+            counter_start += 1.0;
+            if (counter_start >= 50.0){
+                starting_flag = 2.0;
+            }
+
+            desired_speeds.x = 0.5;
             desired_speeds.y = starting_flag;
             desired_speeds.theta = r_result[0];
             s = s_result[0];
-            starting_flag += 1;
 
             desired_speeds_pub.publish(desired_speeds);
         }

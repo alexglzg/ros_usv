@@ -232,4 +232,5 @@ add_executable(mpc src/mpc.cpp)
 target_link_libraries(mpc ${catkin_LIBRARIES})
 target_link_libraries(mpc fatrop)
 target_include_directories(mpc PUBLIC 
-    /usr/local/include/fatrop)
+    /usr/local/include/fatrop
+    /usr/local/include/blasfeo/include)

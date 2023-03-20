@@ -19,12 +19,12 @@ public:
   float port_t;
 
   //Sensor feedback
-  float x;
-  float y;
-  float psi;
-  float u;
-  float v;
-  float r;
+  float x=0;
+  float y=0;
+  float psi=0;
+  float u=0;
+  float v=0;
+  float r=0;
 
   float integral_step;
 
@@ -32,35 +32,34 @@ public:
   //int arduino;
 
   //Tracking variables
-  float u_d;
-  float r_d;
-  float udot_d;
-  float rdot_d;
+  float u_d=0;
+  float r_d=0;
+  float udot_d=0;
+  float rdot_d=0;
   //Condition to restarting initial conditions
-  float starting;
-  float delayed_start;
+  float starting=0;
 
   //Auxiliry variables
-  float e_u0;
-  float e_r0;
-  float e_u;
-  float e_r;
-  float s_u;
-  float s_r;
+  float e_u0=0;
+  float e_r0=0;
+  float e_u=0;
+  float e_r=0;
+  float s_u=0;
+  float s_r=0;
 
-  float ei_u;
-  float eidot_u;
-  float eidot_u_last;
-  float ei_r;
-  float eidot_r;
-  float eidot_r_last;
+  float ei_u=0;
+  float eidot_u=0;
+  float eidot_u_last=0;
+  float ei_r=0;
+  float eidot_r=0;
+  float eidot_r_last=0;
 
-  int sign_u;
-  int sign_r;
-  int sign_u_sm;
-  int sign_r_sm;
-  int sign_su;
-  int sign_sr;
+  int sign_u=0;
+  int sign_r=0;
+  int sign_u_sm=0;
+  int sign_r_sm=0;
+  int sign_su=0;
+  int sign_sr=0;
 
   //Model pysical parameters
   float Xu;
@@ -82,16 +81,16 @@ public:
   float f_r;
   float g_r;
   
-  float Tx;
-  float Tz;
-  float Ka_u;
-  float Ka_r;
-  float Ka_dot_u;
-  float Ka_dot_r;
-  float Ka_dot_last_u;
-  float Ka_dot_last_r;
-  float ua_u;
-  float ua_r;
+  float Tx=0;
+  float Tz=0;
+  float Ka_u=0;
+  float Ka_r=0;
+  float Ka_dot_u=0;
+  float Ka_dot_r=0;
+  float Ka_dot_last_u=0;
+  float Ka_dot_last_r=0;
+  float ua_u=0;
+  float ua_r=0;
 
   //Controller gains
   float k_u;
@@ -153,14 +152,14 @@ public:
     //flag_sub = n.subscribe("/arduino_br/ardumotors/flag", 1000, &AdaptiveSlidingModeControl::flagCallback, this);
     //ardu_sub = n.subscribe("arduino", 1000, &AdaptiveSlidingModeControl::arduinoCallback, this);
 
-    static const float dk_u = 0.1;
-    static const float dk_r = 0.2;
+    static const float dk_u = 1.0;
+    static const float dk_r = 1.0;
     static const float dkmin_u = 0.01;
     static const float dkmin_r = 0.01;
     static const float dk2_u = 0.01;
     static const float dk2_r = 0.01;
-    static const float dmu_u = 0.02;
-    static const float dmu_r = 0.02;
+    static const float dmu_u = 0.001;
+    static const float dmu_r = 0.001;
     static const float dtc_u = 2;
     static const float dtc_r = 2;
     static const float dq_u = 3;
@@ -195,13 +194,9 @@ public:
 
     g_u = (1 / (m - X_u_dot));
     g_r = (1 / (Iz - N_r_dot));
-    u_d = 0;
-    r_d = 0;
     testing = 1;
-    //arduino = 0;
-    starting = 0;
-    alpha_u = 0.2;
-    alpha_r = 0.2;
+    alpha_u = 0.8;
+    alpha_r = 0.8;
 
   }
 
@@ -283,13 +278,13 @@ public:
 
       if (starting == 1){
           e_u0 = e_u;
-          e_r0 = e_r;
-          alpha_u = (pow(std::abs(e_u0),1-q_u/p_u))/(tc_u*(1-q_u/p_u));
-          alpha_r = (pow(std::abs(e_r0),1-q_r/p_r))/(tc_r*(1-q_r/p_r));
-          ei_u = -e_u0/alpha_u;
-          ei_r = -e_r0/alpha_r;
-          ROS_FATAL_STREAM("alpha_u = " << alpha_u);
-          ROS_FATAL_STREAM("alpha_r = " << alpha_r);
+          //e_r0 = e_r;
+          //alpha_u = (pow(std::abs(e_u0),1-q_u/p_u))/(tc_u*(1-q_u/p_u));
+          //alpha_r = (pow(std::abs(e_r0),1-q_r/p_r))/(tc_r*(1-q_r/p_r));
+          //ei_u = -e_u0/alpha_u;
+          //ei_r = -e_r0/alpha_r;
+          //ROS_FATAL_STREAM("alpha_u = " << alpha_u);
+          //ROS_FATAL_STREAM("alpha_r = " << alpha_r);
       }
       
       s_u = e_u + alpha_u*ei_u;

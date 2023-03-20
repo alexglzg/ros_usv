@@ -184,7 +184,7 @@ public:
         //Hydrodynamic equations and parameter conditions
 		Xu = -25.0;
 		Xuu = 0.00;
-		if (abs(nu_r(0)) > 1.2){
+		if (abs(nu_r(0)) > 1.25){
 			Xu = 64.55;
 			Xuu = -70.92;
 		}
