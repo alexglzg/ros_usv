@@ -48,8 +48,8 @@ class MPC
             ins_pose_sub = n.subscribe("/vectornav/ins_2d/NED_pose", 1000, &MPC::insCallback, this);
             local_vel_sub = n.subscribe("/vectornav/ins_2d/local_vel", 1000, &MPC::velocityCallback, this);
 
-            app = StageOCPApplicationBuilder::FromRockitInterface("/home/alex/Documents/rockit/examples/ASV_examples/foobar/casadi_codegen.so",
-            "/home/alex/Documents/rockit/examples/ASV_examples/foobar/casadi_codegen.json");
+            app = StageOCPApplicationBuilder::FromRockitInterface("/ws/foobar/casadi_codegen.so",
+            "/ws/foobar/casadi_codegen.json");
             
             ///  no dynamic memory allocation
             // app->Optimize();
@@ -89,13 +89,13 @@ class MPC
 
             app->Optimize();
 
-            auto eval_expression = app->GetExprEvaluator("Urdot")->at_t0();
+            auto eval_expression = app->GetExpression("Urdot")->at_t0();
             std::vector<double> u0_result(eval_expression -> Size());
 
-            auto eval_r = app->GetExprEvaluator("r")->at_tk(1);
+            auto eval_r = app->GetExpression("r")->at_tk(1);
             std::vector<double> r_result(eval_r -> Size());
 
-            auto eval_s = app->GetExprEvaluator("s_min")->at_t0();
+            auto eval_s = app->GetExpression("s_min")->at_t0();
             std::vector<double> s_result(eval_s -> Size());
 
             app->LastStageOCPSolution().Eval(eval_expression, u0_result);
