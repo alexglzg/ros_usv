@@ -9,6 +9,9 @@
 #include "std_msgs/UInt8.h"
 #include <ros/console.h>
 
+#include "nav_msgs/Odometry.h"
+#include <tf/tf.h>
+
 using namespace Eigen;
 
 class AdaptiveSlidingModeControl
@@ -149,6 +152,7 @@ public:
     desired_speedsdot_sub = n.subscribe("/desired_speeds_derivative", 1000, &AdaptiveSlidingModeControl::desiredTrajDotCallback, this);
     ins_pose_sub = n.subscribe("/vectornav/ins_2d/NED_pose", 1000, &AdaptiveSlidingModeControl::insCallback, this);
     local_vel_sub = n.subscribe("/vectornav/ins_2d/local_vel", 1000, &AdaptiveSlidingModeControl::velocityCallback, this);
+    odom_sub = n.subscribe("/imu/odometry", 10, &AdaptiveSlidingModeControl::odomCallback, this);
     //flag_sub = n.subscribe("/arduino_br/ardumotors/flag", 1000, &AdaptiveSlidingModeControl::flagCallback, this);
     //ardu_sub = n.subscribe("arduino", 1000, &AdaptiveSlidingModeControl::arduinoCallback, this);
 
@@ -225,6 +229,26 @@ public:
     u = _vel -> x;
     v = _vel -> y;
     r = _vel -> z;
+  }
+
+  void odomCallback(const nav_msgs::Odometry::ConstPtr& o)
+  {
+      x = o->pose.pose.position.x;
+      y = o->pose.pose.position.y;
+
+      tf::Quaternion q(
+          o->pose.pose.orientation.x,
+          o->pose.pose.orientation.y,
+          o->pose.pose.orientation.z,
+          o->pose.pose.orientation.w);
+      tf::Matrix3x3 m(q);
+      double roll, pitch, yaw;
+      m.getRPY(roll, pitch, yaw);
+      psi = yaw;
+
+      u = o->twist.twist.linear.x;
+      v = o->twist.twist.linear.y;
+      r = o->twist.twist.angular.z;
   }
 
   /*void flagCallback(const std_msgs::UInt8::ConstPtr& _flag)
@@ -434,6 +458,7 @@ private:
   ros::Subscriber desired_speedsdot_sub;
   ros::Subscriber ins_pose_sub;
   ros::Subscriber local_vel_sub;
+  ros::Subscriber odom_sub;
   //ros::Subscriber flag_sub;
   //ros::Subscriber ardu_sub;
 };

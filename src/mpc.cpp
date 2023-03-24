@@ -5,6 +5,8 @@
 #include "ros/ros.h"
 #include "geometry_msgs/Pose2D.h"
 #include "geometry_msgs/Vector3.h"
+#include "nav_msgs/Odometry.h"
+#include <tf/tf.h>
 #include "std_msgs/Float64.h"
 #include "std_msgs/UInt8.h"
 #include <ros/console.h>
@@ -45,6 +47,7 @@ class MPC
             desired_speeds_pub = n.advertise<geometry_msgs::Pose2D>("/desired_speeds", 1);
             desired_accelerations_pub = n.advertise<geometry_msgs::Pose2D>("/desired_speeds_derivative", 1);
 
+            odom_sub = n.subscribe("/imu/odometry", 10, &MPC::odomCallback, this);
             ins_pose_sub = n.subscribe("/vectornav/ins_2d/NED_pose", 1000, &MPC::insCallback, this);
             local_vel_sub = n.subscribe("/vectornav/ins_2d/local_vel", 1000, &MPC::velocityCallback, this);
 
@@ -63,6 +66,26 @@ class MPC
             app->SetOption("iterative_refinement", false); // fast_step_computation
             app->SetOption("warm_start_init_point", true);
 
+        }
+
+        void odomCallback(const nav_msgs::Odometry::ConstPtr& o)
+        {
+            x = o->pose.pose.position.x;
+            y = o->pose.pose.position.y;
+
+            tf::Quaternion q(
+                o->pose.pose.orientation.x,
+                o->pose.pose.orientation.y,
+                o->pose.pose.orientation.z,
+                o->pose.pose.orientation.w);
+            tf::Matrix3x3 m(q);
+            double roll, pitch, yaw;
+            m.getRPY(roll, pitch, yaw);
+            psi = yaw;
+
+            u = o->twist.twist.linear.x;
+            v = o->twist.twist.linear.y;
+            r = o->twist.twist.angular.z;
         }
 
         void insCallback(const geometry_msgs::Pose2D::ConstPtr& _ins)
@@ -125,7 +148,7 @@ class MPC
         
         ros::Subscriber ins_pose_sub;
         ros::Subscriber local_vel_sub;
-          
+        ros::Subscriber odom_sub;
 
 };
 
