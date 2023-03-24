@@ -137,24 +137,24 @@ public:
   AdaptiveSlidingModeControl()
   {
     //ROS Publishers for each required sensor data
-    right_thruster_pub = n.advertise<std_msgs::Float64>("/usv_control/controller/right_thruster", 1000);
-    left_thruster_pub = n.advertise<std_msgs::Float64>("/usv_control/controller/left_thruster", 1000);
-    surge_gain_pub = n.advertise<std_msgs::Float64>("/usv_control/aitsmc/speed_gain", 1000);
-    surge_error_pub = n.advertise<std_msgs::Float64>("/usv_control/controller/speed_error", 1000);
-    surge_sigma_pub = n.advertise<std_msgs::Float64>("/usv_control/aitsmc/speed_sigma", 1000);
-    yaw_sigma_pub = n.advertise<std_msgs::Float64>("/usv_control/aitsmc/heading_sigma", 1000);
-    yaw_gain_pub = n.advertise<std_msgs::Float64>("/usv_control/aitsmc/heading_gain", 1000);
-    yaw_error_pub = n.advertise<std_msgs::Float64>("/usv_control/controller/heading_error", 1000);
-    control_input_pub = n.advertise<geometry_msgs::Pose2D>("/usv_control/controller/control_input", 1000);
+    right_thruster_pub = n.advertise<std_msgs::Float64>("/usv_control/controller/right_thruster", 10);
+    left_thruster_pub = n.advertise<std_msgs::Float64>("/usv_control/controller/left_thruster", 10);
+    surge_gain_pub = n.advertise<std_msgs::Float64>("/usv_control/aitsmc/speed_gain", 10);
+    surge_error_pub = n.advertise<std_msgs::Float64>("/usv_control/controller/speed_error", 10);
+    surge_sigma_pub = n.advertise<std_msgs::Float64>("/usv_control/aitsmc/speed_sigma", 10);
+    yaw_sigma_pub = n.advertise<std_msgs::Float64>("/usv_control/aitsmc/heading_sigma", 10);
+    yaw_gain_pub = n.advertise<std_msgs::Float64>("/usv_control/aitsmc/heading_gain", 10);
+    yaw_error_pub = n.advertise<std_msgs::Float64>("/usv_control/controller/heading_error", 10);
+    control_input_pub = n.advertise<geometry_msgs::Pose2D>("/usv_control/controller/control_input", 10);
 
     //ROS Subscribers
-    desired_speeds_sub = n.subscribe("/desired_speeds", 1000, &AdaptiveSlidingModeControl::desiredTrajCallback, this);
-    desired_speedsdot_sub = n.subscribe("/desired_speeds_derivative", 1000, &AdaptiveSlidingModeControl::desiredTrajDotCallback, this);
-    ins_pose_sub = n.subscribe("/vectornav/ins_2d/NED_pose", 1000, &AdaptiveSlidingModeControl::insCallback, this);
-    local_vel_sub = n.subscribe("/vectornav/ins_2d/local_vel", 1000, &AdaptiveSlidingModeControl::velocityCallback, this);
+    desired_speeds_sub = n.subscribe("/desired_speeds", 10, &AdaptiveSlidingModeControl::desiredTrajCallback, this);
+    desired_speedsdot_sub = n.subscribe("/desired_speeds_derivative", 10, &AdaptiveSlidingModeControl::desiredTrajDotCallback, this);
+    ins_pose_sub = n.subscribe("/vectornav/ins_2d/NED_pose", 10, &AdaptiveSlidingModeControl::insCallback, this);
+    local_vel_sub = n.subscribe("/vectornav/ins_2d/local_vel", 10, &AdaptiveSlidingModeControl::velocityCallback, this);
     odom_sub = n.subscribe("/imu/odometry", 10, &AdaptiveSlidingModeControl::odomCallback, this);
-    //flag_sub = n.subscribe("/arduino_br/ardumotors/flag", 1000, &AdaptiveSlidingModeControl::flagCallback, this);
-    //ardu_sub = n.subscribe("arduino", 1000, &AdaptiveSlidingModeControl::arduinoCallback, this);
+    //flag_sub = n.subscribe("/arduino_br/ardumotors/flag", 10, &AdaptiveSlidingModeControl::flagCallback, this);
+    //ardu_sub = n.subscribe("arduino", 10, &AdaptiveSlidingModeControl::arduinoCallback, this);
 
     static const float dk_u = 1.0;
     static const float dk_r = 1.0;
@@ -233,8 +233,9 @@ public:
 
   void odomCallback(const nav_msgs::Odometry::ConstPtr& o)
   {
+      //Te agregue signos negativos en y,psi,v,r porque odom por lo general es otro marco de referencia
       x = o->pose.pose.position.x;
-      y = o->pose.pose.position.y;
+      y = -o->pose.pose.position.y;
 
       tf::Quaternion q(
           o->pose.pose.orientation.x,
@@ -244,11 +245,11 @@ public:
       tf::Matrix3x3 m(q);
       double roll, pitch, yaw;
       m.getRPY(roll, pitch, yaw);
-      psi = yaw;
+      psi = -yaw;
 
       u = o->twist.twist.linear.x;
-      v = o->twist.twist.linear.y;
-      r = o->twist.twist.angular.z;
+      v = -o->twist.twist.linear.y;
+      r = -o->twist.twist.angular.z;
   }
 
   /*void flagCallback(const std_msgs::UInt8::ConstPtr& _flag)
@@ -300,15 +301,17 @@ public:
       ei_r = (integral_step)*(eidot_r + eidot_r_last)/2 + ei_r; //r integral error
       eidot_r_last = eidot_r;
 
-      if (starting == 1){
+      if (starting == 1.0){
           e_u0 = e_u;
-          //e_r0 = e_r;
-          //alpha_u = (pow(std::abs(e_u0),1-q_u/p_u))/(tc_u*(1-q_u/p_u));
-          //alpha_r = (pow(std::abs(e_r0),1-q_r/p_r))/(tc_r*(1-q_r/p_r));
-          //ei_u = -e_u0/alpha_u;
-          //ei_r = -e_r0/alpha_r;
-          //ROS_FATAL_STREAM("alpha_u = " << alpha_u);
-          //ROS_FATAL_STREAM("alpha_r = " << alpha_r);
+          e_r0 = e_r;
+          alpha_u = (pow(std::abs(e_u0),1-q_u/p_u))/(tc_u*(1-q_u/p_u));
+          alpha_r = (pow(std::abs(e_r0),1-q_r/p_r))/(tc_r*(1-q_r/p_r));
+          ei_u = -e_u0/alpha_u;
+          ei_r = -e_r0/alpha_r;
+          ROS_FATAL_STREAM("alpha_u = " << alpha_u);
+          ROS_FATAL_STREAM("alpha_r = " << alpha_r);
+          ROS_FATAL_STREAM("e_u0 = " << e_u0);
+          ROS_FATAL_STREAM("e_r0 = " << e_r0);
       }
       
       s_u = e_u + alpha_u*ei_u;

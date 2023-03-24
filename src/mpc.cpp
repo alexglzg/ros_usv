@@ -44,12 +44,12 @@ class MPC
         MPC()
         {
 
-            desired_speeds_pub = n.advertise<geometry_msgs::Pose2D>("/desired_speeds", 1);
-            desired_accelerations_pub = n.advertise<geometry_msgs::Pose2D>("/desired_speeds_derivative", 1);
+            desired_speeds_pub = n.advertise<geometry_msgs::Pose2D>("/desired_speeds", 10);
+            desired_accelerations_pub = n.advertise<geometry_msgs::Pose2D>("/desired_speeds_derivative", 10);
 
             odom_sub = n.subscribe("/imu/odometry", 10, &MPC::odomCallback, this);
-            ins_pose_sub = n.subscribe("/vectornav/ins_2d/NED_pose", 1000, &MPC::insCallback, this);
-            local_vel_sub = n.subscribe("/vectornav/ins_2d/local_vel", 1000, &MPC::velocityCallback, this);
+            ins_pose_sub = n.subscribe("/vectornav/ins_2d/NED_pose", 10, &MPC::insCallback, this);
+            local_vel_sub = n.subscribe("/vectornav/ins_2d/local_vel", 10, &MPC::velocityCallback, this);
 
             app = StageOCPApplicationBuilder::FromRockitInterface("/ws/foobar/casadi_codegen.so",
             "/ws/foobar/casadi_codegen.json");
@@ -71,7 +71,7 @@ class MPC
         void odomCallback(const nav_msgs::Odometry::ConstPtr& o)
         {
             x = o->pose.pose.position.x;
-            y = o->pose.pose.position.y;
+            y = -o->pose.pose.position.y;
 
             tf::Quaternion q(
                 o->pose.pose.orientation.x,
@@ -81,11 +81,11 @@ class MPC
             tf::Matrix3x3 m(q);
             double roll, pitch, yaw;
             m.getRPY(roll, pitch, yaw);
-            psi = yaw;
+            psi = -yaw;
 
             u = o->twist.twist.linear.x;
-            v = o->twist.twist.linear.y;
-            r = o->twist.twist.angular.z;
+            v = -o->twist.twist.linear.y;
+            r = -o->twist.twist.angular.z;
         }
 
         void insCallback(const geometry_msgs::Pose2D::ConstPtr& _ins)
@@ -128,11 +128,11 @@ class MPC
 
             starting_flag = 1.0;
             counter_start += 1.0;
-            if (counter_start >= 50.0){
+            if (counter_start >= 5.0){
                 starting_flag = 2.0;
             }
 
-            desired_speeds.x = 0.5;
+            desired_speeds.x = 0.7;
             desired_speeds.y = starting_flag;
             desired_speeds.theta = r_result[0];
             s = s_result[0];
@@ -158,6 +158,8 @@ int main(int argc, char **argv)
     MPC mpc;
 
     ros::Rate loop_rate(100);
+    ros::Rate start_delay(0.2);
+    start_delay.sleep(); //Five second delay to start
 
     while (ros::ok())
     {
