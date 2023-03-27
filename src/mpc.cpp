@@ -214,7 +214,7 @@ int main(int argc, char **argv)
     MPC mpc;
 
     ros::Rate loop_rate(100);
-    ros::Rate start_delay(5);
+    ros::Rate start_delay(0.2);
     
     start_delay.sleep(); //Five second delay to start
 
