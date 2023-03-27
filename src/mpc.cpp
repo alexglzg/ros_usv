@@ -70,10 +70,7 @@ class MPC
 
         void odomCallback(const nav_msgs::Odometry::ConstPtr& o)
         {
-            x = o->pose.pose.position.x;
-            y = -o->pose.pose.position.y;
-
-            tf::Quaternion q(
+                tf::Quaternion q(
                 o->pose.pose.orientation.x,
                 o->pose.pose.orientation.y,
                 o->pose.pose.orientation.z,
@@ -81,11 +78,19 @@ class MPC
             tf::Matrix3x3 m(q);
             double roll, pitch, yaw;
             m.getRPY(roll, pitch, yaw);
-            psi = -yaw;
+            psi = yaw;
 
-            u = o->twist.twist.linear.x;
-            v = -o->twist.twist.linear.y;
-            r = -o->twist.twist.angular.z;
+            //Te agregue signos negativos en y,psi,v,r porque odom por lo general es otro marco de referencia
+            x = o->pose.pose.position.y;
+            y = o->pose.pose.position.x;
+
+            double u_orig = o->twist.twist.linear.x;
+            double v_orig = -o->twist.twist.linear.y;
+
+            u = std::cos(psi) * u_orig - std::sin(psi) * v_orig;
+            v = -(std::sin(psi) * u_orig + std::cos(psi) * v_orig);
+            r = o->twist.twist.angular.z;
+            //ROS_INFO("x: %f, y: %f, u: %f v: %f, r: %f", x, y, u, v, r);
         }
 
         void insCallback(const geometry_msgs::Pose2D::ConstPtr& _ins)
@@ -158,7 +163,7 @@ int main(int argc, char **argv)
     MPC mpc;
 
     ros::Rate loop_rate(100);
-    ros::Rate start_delay(0.2);
+    ros::Rate start_delay(5);
     start_delay.sleep(); //Five second delay to start
 
     while (ros::ok())

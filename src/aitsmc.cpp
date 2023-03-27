@@ -6,6 +6,8 @@
 #include "geometry_msgs/Pose2D.h"
 #include "geometry_msgs/Vector3.h"
 #include "std_msgs/Float64.h"
+#include "std_msgs/Float32.h"
+
 #include "std_msgs/UInt8.h"
 #include <ros/console.h>
 
@@ -120,8 +122,8 @@ public:
   Vector2f ua_xi;
   Vector2f xi_dot;
 
-  std_msgs::Float64 right_thruster;
-  std_msgs::Float64 left_thruster;
+  std_msgs::Float32 right_thruster;
+  std_msgs::Float32 left_thruster;
   
   std_msgs::Float64 u_gain;
   std_msgs::Float64 r_gain;
@@ -137,8 +139,8 @@ public:
   AdaptiveSlidingModeControl()
   {
     //ROS Publishers for each required sensor data
-    right_thruster_pub = n.advertise<std_msgs::Float64>("/usv_control/controller/right_thruster", 10);
-    left_thruster_pub = n.advertise<std_msgs::Float64>("/usv_control/controller/left_thruster", 10);
+    right_thruster_pub = n.advertise<std_msgs::Float32>("/motors/right_thrust", 10);
+    left_thruster_pub = n.advertise<std_msgs::Float32>("/motors/left_thrust", 10);
     surge_gain_pub = n.advertise<std_msgs::Float64>("/usv_control/aitsmc/speed_gain", 10);
     surge_error_pub = n.advertise<std_msgs::Float64>("/usv_control/controller/speed_error", 10);
     surge_sigma_pub = n.advertise<std_msgs::Float64>("/usv_control/aitsmc/speed_sigma", 10);
@@ -233,23 +235,27 @@ public:
 
   void odomCallback(const nav_msgs::Odometry::ConstPtr& o)
   {
-      //Te agregue signos negativos en y,psi,v,r porque odom por lo general es otro marco de referencia
-      x = o->pose.pose.position.x;
-      y = -o->pose.pose.position.y;
-
-      tf::Quaternion q(
-          o->pose.pose.orientation.x,
-          o->pose.pose.orientation.y,
-          o->pose.pose.orientation.z,
-          o->pose.pose.orientation.w);
+        tf::Quaternion q(
+        o->pose.pose.orientation.x,
+        o->pose.pose.orientation.y,
+        o->pose.pose.orientation.z,
+        o->pose.pose.orientation.w);
       tf::Matrix3x3 m(q);
       double roll, pitch, yaw;
       m.getRPY(roll, pitch, yaw);
-      psi = -yaw;
+      psi = yaw;
 
-      u = o->twist.twist.linear.x;
-      v = -o->twist.twist.linear.y;
-      r = -o->twist.twist.angular.z;
+      //Te agregue signos negativos en y,psi,v,r porque odom por lo general es otro marco de referencia
+      x = o->pose.pose.position.y;
+      y = o->pose.pose.position.x;
+
+      double u_orig = o->twist.twist.linear.x;
+      double v_orig = -o->twist.twist.linear.y;
+
+      u = std::cos(psi) * u_orig - std::sin(psi) * v_orig;
+      v = -(std::sin(psi) * u_orig + std::cos(psi) * v_orig);
+      r = o->twist.twist.angular.z;
+      ROS_INFO("x: %f, y: %f, u: %f v: %f, r: %f psi: %f", x, y, u, v, r, psi);
   }
 
   /*void flagCallback(const std_msgs::UInt8::ConstPtr& _flag)
@@ -417,6 +423,7 @@ public:
       //Data publishing
       right_thruster.data = starboard_t;
       left_thruster.data = port_t;
+      //ROS_INFO("Right Thruster: %f Left Thruster: %f", starboard_t, port_t);
 
       u_gain.data = Ka_u;
       r_gain.data = Ka_r;
