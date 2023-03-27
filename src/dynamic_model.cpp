@@ -14,6 +14,7 @@
 #include "geometry_msgs/Vector3.h"
 #include "nav_msgs/Odometry.h"
 #include "std_msgs/Float64.h"
+#include "std_msgs/Float32.h"
 #include "std_msgs/UInt8.h"
 #include <math.h>
 #include <eigen3/Eigen/Dense>
@@ -97,17 +98,17 @@ public:
 	DynamicModel()
 	{
 		//ROS Publishers for each required simulated ins_2d data
-		//dm_pos_pub = n.advertise<geometry_msgs::Pose2D>("/vectornav/ins_2d/ins_pose", 1000);
-		local_pos_pub = n.advertise<geometry_msgs::Pose2D>("/vectornav/ins_2d/NED_pose", 1000);
-		dm_vel_pub = n.advertise<geometry_msgs::Vector3>("/vectornav/ins_2d/local_vel", 1000);
-		//ardumotors_flag_pub = n.advertise<std_msgs::UInt8>("/arduino_br/ardumotors/flag",1000);
-		//arduino_flag_pub = n.advertise<std_msgs::UInt8>("arduino",1000);
-		boat_odom_pub = n.advertise<nav_msgs::Odometry>("/usv_control/dynamic_model_simulate/odom", 1000);
+		//dm_pos_pub = n.advertise<geometry_msgs::Pose2D>("/vectornav/ins_2d/ins_pose", 10);
+		local_pos_pub = n.advertise<geometry_msgs::Pose2D>("/vectornav/ins_2d/NED_pose", 10);
+		dm_vel_pub = n.advertise<geometry_msgs::Vector3>("/vectornav/ins_2d/local_vel", 10);
+		//ardumotors_flag_pub = n.advertise<std_msgs::UInt8>("/arduino_br/ardumotors/flag",10);
+		//arduino_flag_pub = n.advertise<std_msgs::UInt8>("arduino",10);
+		boat_odom_pub = n.advertise<nav_msgs::Odometry>("/usv_control/dynamic_model_simulate/odom", 10);
 
-		right_thruster_sub = n.subscribe("/usv_control/controller/right_thruster", 1000, &DynamicModel::right_callback, this);
-		left_thruster_sub = n.subscribe("/usv_control/controller/left_thruster", 1000, &DynamicModel::left_callback, this);
-		disturbance_sub = n.subscribe("/usv_disturbance", 1000, &DynamicModel::dist_callback, this);
-        currents_sub = n.subscribe("/usv_currents", 1000, &DynamicModel::currents_callback, this);
+		right_thruster_sub = n.subscribe("/motors/right_thrust", 10, &DynamicModel::right_callback, this);
+		left_thruster_sub = n.subscribe("/motors/left_thrust", 10, &DynamicModel::left_callback, this);
+		disturbance_sub = n.subscribe("/usv_disturbance", 10, &DynamicModel::dist_callback, this);
+        currents_sub = n.subscribe("/usv_currents", 10, &DynamicModel::currents_callback, this);
 
 		upsilon << 0.00, 0.00, 0.00;
 		upsilon_dot_last << 0.00, 0.00, 0.00;
@@ -152,12 +153,12 @@ public:
 
 	}
 
-	void right_callback(const std_msgs::Float64::ConstPtr& right)
+	void right_callback(const std_msgs::Float32::ConstPtr& right)
 	{
 		Tstbd = right->data; //right thruster input in Newtons
 	}
 
-	void left_callback(const std_msgs::Float64::ConstPtr& left)
+	void left_callback(const std_msgs::Float32::ConstPtr& left)
 	{
 		Tport = left->data; //left thruster input in Newtons
 	}
