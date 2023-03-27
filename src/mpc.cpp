@@ -39,12 +39,17 @@ class MPC
         float y_start = 1.0;
         float x_d;
         float y_d;
+        float xdot_d;
+        float ydot_d;
+        float gamma_p;
+        float ye;
 
         const double x0[7] = {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0};
 
         geometry_msgs::Pose2D desired_speeds;
         geometry_msgs::Pose2D desired_accelerations;
         geometry_msgs::Pose2D desired_position;
+        std_msgs::Float64 cross_track_error;
 
         std::shared_ptr<StageOCPApplication> app;
 
@@ -54,6 +59,7 @@ class MPC
             desired_speeds_pub = n.advertise<geometry_msgs::Pose2D>("/desired_speeds", 10);
             desired_accelerations_pub = n.advertise<geometry_msgs::Pose2D>("/desired_speeds_derivative", 10);
             desired_position_pub = n.advertise<geometry_msgs::Pose2D>("/desired_position", 10);
+            cross_track_error_pub = n.advertise<std_msgs::Float64>("/cross_track_error", 10);
 
             ins_pose_sub = n.subscribe("/vectornav/ins_2d/NED_pose", 10, &MPC::insCallback, this);
             local_vel_sub = n.subscribe("/vectornav/ins_2d/local_vel", 10, &MPC::velocityCallback, this);
@@ -99,6 +105,16 @@ class MPC
             return y_multiplier*s_var +  y_start;
         }
 
+        float desired_x_dot(float s_var)
+        {
+            return x_amplitude*x_freq*cos((x_freq) * s_var);
+        }
+
+        float desired_y_dot(float s_var)
+        {
+            return y_multiplier;
+        }
+
         void mpc()
         {   
             // TODO: figure out why an extra iteration
@@ -139,8 +155,15 @@ class MPC
             desired_position.x = x_d;
             desired_position.y = y_d;
 
+            xdot_d = desired_x_dot(s);
+            ydot_d = desired_y_dot(s);
+            gamma_p = std::atan2(ydot_d,xdot_d);
+            ye = -(x-x_d)*std::sin(gamma_p)+(y-y_d)*std::cos(gamma_p);
+            cross_track_error.data = ye;
+
             desired_speeds_pub.publish(desired_speeds);
             desired_position_pub.publish(desired_position);
+            cross_track_error_pub.publish(cross_track_error);
         }
 
     private:
@@ -149,6 +172,7 @@ class MPC
         ros::Publisher desired_speeds_pub;
         ros::Publisher desired_accelerations_pub;
         ros::Publisher desired_position_pub;
+        ros::Publisher cross_track_error_pub;
         
         ros::Subscriber ins_pose_sub;
         ros::Subscriber local_vel_sub;
