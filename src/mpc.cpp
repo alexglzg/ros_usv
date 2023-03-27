@@ -5,6 +5,8 @@
 #include "ros/ros.h"
 #include "geometry_msgs/Pose2D.h"
 #include "geometry_msgs/Vector3.h"
+#include "nav_msgs/Odometry.h"
+#include <tf/tf.h>
 #include "std_msgs/Float64.h"
 #include "std_msgs/UInt8.h"
 #include <ros/console.h>
@@ -61,12 +63,13 @@ class MPC
             desired_position_pub = n.advertise<geometry_msgs::Pose2D>("/desired_position", 10);
             cross_track_error_pub = n.advertise<std_msgs::Float64>("/cross_track_error", 10);
 
+            odom_sub = n.subscribe("/imu/odometry", 10, &MPC::odomCallback, this);
             ins_pose_sub = n.subscribe("/vectornav/ins_2d/NED_pose", 10, &MPC::insCallback, this);
             local_vel_sub = n.subscribe("/vectornav/ins_2d/local_vel", 10, &MPC::velocityCallback, this);
 
-            app = StageOCPApplicationBuilder::FromRockitInterface("/home/alex/Documents/rockit/examples/ASV_examples/foobar/casadi_codegen.so",
-            "/home/alex/Documents/rockit/examples/ASV_examples/foobar/casadi_codegen.json");
-             
+            app = StageOCPApplicationBuilder::FromRockitInterface("/ws/foobar/casadi_codegen.so",
+            "/ws/foobar/casadi_codegen.json");
+
             ///  no dynamic memory allocation
             // app->Optimize();
             // ///  retrieve solution
@@ -79,6 +82,31 @@ class MPC
             app->SetOption("iterative_refinement", false); // fast_step_computation
             app->SetOption("warm_start_init_point", true);
 
+        }
+
+        void odomCallback(const nav_msgs::Odometry::ConstPtr& o)
+        {
+                tf::Quaternion q(
+                o->pose.pose.orientation.x,
+                o->pose.pose.orientation.y,
+                o->pose.pose.orientation.z,
+                o->pose.pose.orientation.w);
+            tf::Matrix3x3 m(q);
+            double roll, pitch, yaw;
+            m.getRPY(roll, pitch, yaw);
+            psi = yaw;
+
+            //Te agregue signos negativos en y,psi,v,r porque odom por lo general es otro marco de referencia
+            x = o->pose.pose.position.y;
+            y = o->pose.pose.position.x;
+
+            double u_orig = o->twist.twist.linear.x;
+            double v_orig = -o->twist.twist.linear.y;
+
+            u = std::cos(psi) * u_orig - std::sin(psi) * v_orig;
+            v = -(std::sin(psi) * u_orig + std::cos(psi) * v_orig);
+            r = o->twist.twist.angular.z;
+            //ROS_INFO("x: %f, y: %f, u: %f v: %f, r: %f", x, y, u, v, r);
         }
 
         void insCallback(const geometry_msgs::Pose2D::ConstPtr& _ins)
@@ -125,13 +153,13 @@ class MPC
 
             app->Optimize();
 
-            auto eval_expression = app->GetExprEvaluator("Urdot")->at_t0();
+            auto eval_expression = app->GetExpression("Urdot")->at_t0();
             std::vector<double> u0_result(eval_expression -> Size());
 
-            auto eval_r = app->GetExprEvaluator("r")->at_tk(1);
+            auto eval_r = app->GetExpression("r")->at_tk(1);
             std::vector<double> r_result(eval_r -> Size());
 
-            auto eval_s = app->GetExprEvaluator("s_min")->at_t0();
+            auto eval_s = app->GetExpression("s_min")->at_t0();
             std::vector<double> s_result(eval_s -> Size());
 
             app->LastStageOCPSolution().Eval(eval_expression, u0_result);
@@ -173,10 +201,10 @@ class MPC
         ros::Publisher desired_accelerations_pub;
         ros::Publisher desired_position_pub;
         ros::Publisher cross_track_error_pub;
-        
+
         ros::Subscriber ins_pose_sub;
         ros::Subscriber local_vel_sub;
-          
+        ros::Subscriber odom_sub;
 
 };
 
@@ -186,7 +214,8 @@ int main(int argc, char **argv)
     MPC mpc;
 
     ros::Rate loop_rate(100);
-    ros::Rate start_delay(0.2);
+    ros::Rate start_delay(5);
+    
     start_delay.sleep(); //Five second delay to start
 
     while (ros::ok())

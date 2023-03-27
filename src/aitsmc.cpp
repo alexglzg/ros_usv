@@ -6,8 +6,13 @@
 #include "geometry_msgs/Pose2D.h"
 #include "geometry_msgs/Vector3.h"
 #include "std_msgs/Float64.h"
+#include "std_msgs/Float32.h"
+
 #include "std_msgs/UInt8.h"
 #include <ros/console.h>
+
+#include "nav_msgs/Odometry.h"
+#include <tf/tf.h>
 
 using namespace Eigen;
 
@@ -117,8 +122,8 @@ public:
   Vector2f ua_xi;
   Vector2f xi_dot;
 
-  std_msgs::Float64 right_thruster;
-  std_msgs::Float64 left_thruster;
+  std_msgs::Float32 right_thruster;
+  std_msgs::Float32 left_thruster;
   
   std_msgs::Float64 u_gain;
   std_msgs::Float64 r_gain;
@@ -134,8 +139,9 @@ public:
   AdaptiveSlidingModeControl()
   {
     //ROS Publishers for each required sensor data
-    right_thruster_pub = n.advertise<std_msgs::Float64>("/usv_control/controller/right_thruster", 10);
-    left_thruster_pub = n.advertise<std_msgs::Float64>("/usv_control/controller/left_thruster", 10);
+    right_thruster_pub = n.advertise<std_msgs::Float32>("/motors/right_thrust", 10);
+    left_thruster_pub = n.advertise<std_msgs::Float32>("/motors/left_thrust", 10);
+
     surge_gain_pub = n.advertise<std_msgs::Float64>("/usv_control/aitsmc/speed_gain", 10);
     surge_error_pub = n.advertise<std_msgs::Float64>("/usv_control/controller/speed_error", 10);
     surge_sigma_pub = n.advertise<std_msgs::Float64>("/usv_control/aitsmc/speed_sigma", 10);
@@ -149,8 +155,10 @@ public:
     desired_speedsdot_sub = n.subscribe("/desired_speeds_derivative", 10, &AdaptiveSlidingModeControl::desiredTrajDotCallback, this);
     ins_pose_sub = n.subscribe("/vectornav/ins_2d/NED_pose", 10, &AdaptiveSlidingModeControl::insCallback, this);
     local_vel_sub = n.subscribe("/vectornav/ins_2d/local_vel", 10, &AdaptiveSlidingModeControl::velocityCallback, this);
-    //flag_sub = n.subscribe("/arduino_br/ardumotors/flag", 1000, &AdaptiveSlidingModeControl::flagCallback, this);
-    //ardu_sub = n.subscribe("arduino", 1000, &AdaptiveSlidingModeControl::arduinoCallback, this);
+    odom_sub = n.subscribe("/imu/odometry", 10, &AdaptiveSlidingModeControl::odomCallback, this);
+    //flag_sub = n.subscribe("/arduino_br/ardumotors/flag", 10, &AdaptiveSlidingModeControl::flagCallback, this);
+    //ardu_sub = n.subscribe("arduino", 10, &AdaptiveSlidingModeControl::arduinoCallback, this);
+
 
     static const float dk_u = 1.0;
     static const float dk_r = 1.0;
@@ -226,6 +234,31 @@ public:
     u = _vel -> x;
     v = _vel -> y;
     r = _vel -> z;
+  }
+
+  void odomCallback(const nav_msgs::Odometry::ConstPtr& o)
+  {
+        tf::Quaternion q(
+        o->pose.pose.orientation.x,
+        o->pose.pose.orientation.y,
+        o->pose.pose.orientation.z,
+        o->pose.pose.orientation.w);
+      tf::Matrix3x3 m(q);
+      double roll, pitch, yaw;
+      m.getRPY(roll, pitch, yaw);
+      psi = yaw;
+
+      //Te agregue signos negativos en y,psi,v,r porque odom por lo general es otro marco de referencia
+      x = o->pose.pose.position.y;
+      y = o->pose.pose.position.x;
+
+      double u_orig = o->twist.twist.linear.x;
+      double v_orig = -o->twist.twist.linear.y;
+
+      u = std::cos(psi) * u_orig - std::sin(psi) * v_orig;
+      v = -(std::sin(psi) * u_orig + std::cos(psi) * v_orig);
+      r = o->twist.twist.angular.z;
+      ROS_INFO("x: %f, y: %f, u: %f v: %f, r: %f psi: %f", x, y, u, v, r, psi);
   }
 
   /*void flagCallback(const std_msgs::UInt8::ConstPtr& _flag)
@@ -393,6 +426,7 @@ public:
       //Data publishing
       right_thruster.data = starboard_t;
       left_thruster.data = port_t;
+      //ROS_INFO("Right Thruster: %f Left Thruster: %f", starboard_t, port_t);
 
       u_gain.data = Ka_u;
       r_gain.data = Ka_r;
@@ -437,6 +471,7 @@ private:
   ros::Subscriber desired_speedsdot_sub;
   ros::Subscriber ins_pose_sub;
   ros::Subscriber local_vel_sub;
+  ros::Subscriber odom_sub;
   //ros::Subscriber flag_sub;
   //ros::Subscriber ardu_sub;
 };
