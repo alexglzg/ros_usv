@@ -152,7 +152,7 @@ class MPC
                 starting_flag = 2.0;
             }
 
-            desired_speeds.x = 0.7;
+            desired_speeds.x = 0.5;
             desired_speeds.y = starting_flag;
             desired_speeds.theta = r_result[0];
             s = s_result[0];
