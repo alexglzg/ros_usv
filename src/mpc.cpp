@@ -34,10 +34,19 @@ class MPC
 
         float s = 0.0;
 
+        float x_amplitude = 3.0;
+        float x_start = 1.0;
+        float x_freq = 3*3.141592/40;
+        float y_multiplier = -1.0;
+        float y_start = 1.0;
+        float x_d;
+        float y_d;
+
         const double x0[7] = {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0};
 
         geometry_msgs::Pose2D desired_speeds;
         geometry_msgs::Pose2D desired_accelerations;
+        geometry_msgs::Pose2D desired_position;
 
         std::shared_ptr<StageOCPApplication> app;
 
@@ -46,6 +55,7 @@ class MPC
 
             desired_speeds_pub = n.advertise<geometry_msgs::Pose2D>("/desired_speeds", 10);
             desired_accelerations_pub = n.advertise<geometry_msgs::Pose2D>("/desired_speeds_derivative", 10);
+            desired_position_pub = n.advertise<geometry_msgs::Pose2D>("/desired_position", 10);
 
             odom_sub = n.subscribe("/imu/odometry", 10, &MPC::odomCallback, this);
             ins_pose_sub = n.subscribe("/vectornav/ins_2d/NED_pose", 10, &MPC::insCallback, this);
@@ -102,6 +112,16 @@ class MPC
             r = _vel -> z;
         }
 
+        float desired_x(float s_var)
+        {
+            return x_amplitude*std::sin(s_var*x_freq) + x_start;
+        }
+
+        float desired_y(float s_var)
+        {
+            return y_multiplier*s_var +  y_start;
+        }
+
         void mpc()
         {   
             // TODO: figure out why an extra iteration
@@ -137,7 +157,13 @@ class MPC
             desired_speeds.theta = r_result[0];
             s = s_result[0];
 
+            x_d = desired_x(s);
+            y_d = desired_y(s);
+            desired_position.x = x_d;
+            desired_position.y = y_d;
+
             desired_speeds_pub.publish(desired_speeds);
+            desired_position_pub.publish(desired_position);
         }
 
     private:
@@ -145,7 +171,8 @@ class MPC
 
         ros::Publisher desired_speeds_pub;
         ros::Publisher desired_accelerations_pub;
-        
+        ros::Publisher desired_position_pub;
+
         ros::Subscriber ins_pose_sub;
         ros::Subscriber local_vel_sub;
         ros::Subscriber odom_sub;
