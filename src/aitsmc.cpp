@@ -141,6 +141,7 @@ public:
     //ROS Publishers for each required sensor data
     right_thruster_pub = n.advertise<std_msgs::Float32>("/motors/right_thrust", 10);
     left_thruster_pub = n.advertise<std_msgs::Float32>("/motors/left_thrust", 10);
+
     surge_gain_pub = n.advertise<std_msgs::Float64>("/usv_control/aitsmc/speed_gain", 10);
     surge_error_pub = n.advertise<std_msgs::Float64>("/usv_control/controller/speed_error", 10);
     surge_sigma_pub = n.advertise<std_msgs::Float64>("/usv_control/aitsmc/speed_sigma", 10);
@@ -157,6 +158,7 @@ public:
     odom_sub = n.subscribe("/imu/odometry", 10, &AdaptiveSlidingModeControl::odomCallback, this);
     //flag_sub = n.subscribe("/arduino_br/ardumotors/flag", 10, &AdaptiveSlidingModeControl::flagCallback, this);
     //ardu_sub = n.subscribe("arduino", 10, &AdaptiveSlidingModeControl::arduinoCallback, this);
+
 
     static const float dk_u = 1.0;
     static const float dk_r = 1.0;
@@ -211,6 +213,7 @@ public:
     u_d = _pd -> x;
     starting = _pd -> y;
     r_d = _pd -> theta;
+    //ROS_FATAL_STREAM("start = " << starting);
   }
 
   void desiredTrajDotCallback(const geometry_msgs::Pose2D::ConstPtr& _pdotd)

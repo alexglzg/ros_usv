@@ -69,7 +69,7 @@ class MPC
 
             app = StageOCPApplicationBuilder::FromRockitInterface("/ws/foobar/casadi_codegen.so",
             "/ws/foobar/casadi_codegen.json");
-            
+
             ///  no dynamic memory allocation
             // app->Optimize();
             // ///  retrieve solution
@@ -215,6 +215,7 @@ int main(int argc, char **argv)
 
     ros::Rate loop_rate(100);
     ros::Rate start_delay(5);
+    
     start_delay.sleep(); //Five second delay to start
 
     while (ros::ok())
