@@ -234,3 +234,6 @@ target_link_libraries(mpc fatrop)
 target_include_directories(mpc PUBLIC 
     /usr/local/include/fatrop
     /usr/local/include/blasfeo/include)
+
+add_executable(desired_path_broadcaster src/desired_path_broadcaster.cpp)
+target_link_libraries(desired_path_broadcaster ${catkin_LIBRARIES})
