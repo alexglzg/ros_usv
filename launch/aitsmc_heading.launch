@@ -18,4 +18,6 @@
 	<param name = "p_psi" value = "5" />
 </node>
 
+ <node type="record" pkg="rosbag" name="recorder" args="record -a" />
+
 </launch>
