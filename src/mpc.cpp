@@ -98,15 +98,11 @@ class MPC
             m.getRPY(roll, pitch, yaw);
             psi = yaw;
 
-            //Te agregue signos negativos en y,psi,v,r porque odom por lo general es otro marco de referencia
             x = o->pose.pose.position.y;
             y = o->pose.pose.position.x;
-
-            double u_orig = o->twist.twist.linear.x;
-            double v_orig = -o->twist.twist.linear.y;
-
-            u = std::cos(psi) * u_orig - std::sin(psi) * v_orig;
-            v = -(std::sin(psi) * u_orig + std::cos(psi) * v_orig);
+            
+            u = o->twist.twist.linear.x;
+            v = o->twist.twist.linear.y;
             r = o->twist.twist.angular.z;
             //ROS_INFO("x: %f, y: %f, u: %f v: %f, r: %f", x, y, u, v, r);
         }

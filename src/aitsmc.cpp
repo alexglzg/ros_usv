@@ -243,22 +243,18 @@ public:
         o->pose.pose.orientation.y,
         o->pose.pose.orientation.z,
         o->pose.pose.orientation.w);
-      tf::Matrix3x3 m(q);
-      double roll, pitch, yaw;
-      m.getRPY(roll, pitch, yaw);
-      psi = yaw;
+    tf::Matrix3x3 m(q);
+    double roll, pitch, yaw;
+    m.getRPY(roll, pitch, yaw);
+    psi = yaw;
 
-      //Te agregue signos negativos en y,psi,v,r porque odom por lo general es otro marco de referencia
-      x = o->pose.pose.position.y;
-      y = o->pose.pose.position.x;
-
-      double u_orig = o->twist.twist.linear.x;
-      double v_orig = -o->twist.twist.linear.y;
-
-      u = std::cos(psi) * u_orig - std::sin(psi) * v_orig;
-      v = -(std::sin(psi) * u_orig + std::cos(psi) * v_orig);
-      r = o->twist.twist.angular.z;
-      ROS_INFO("x: %f, y: %f, u: %f v: %f, r: %f psi: %f", x, y, u, v, r, psi);
+    x = o->pose.pose.position.y;
+    y = o->pose.pose.position.x;
+    
+    u = o->twist.twist.linear.x;
+    v = o->twist.twist.linear.y;
+    r = o->twist.twist.angular.z;
+    //ROS_INFO("x: %f, y: %f, u: %f v: %f, r: %f", x, y, u, v, r);  
   }
 
   /*void flagCallback(const std_msgs::UInt8::ConstPtr& _flag)
