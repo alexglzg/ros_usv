@@ -32,7 +32,7 @@ class MPC
         float starting_flag=0.0;
         float counter_start = 0.0;
 
-        float s = 0.0;
+        float s = 2.0;
 
         float x_amplitude = 1.5;
         float x_start = 1.0;
@@ -46,7 +46,7 @@ class MPC
         float gamma_p;
         float ye;
 
-        const double x0[7] = {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0};
+        const double x0[6] = {1.0, 1.0, 1.0, 1.0, 1.0, 1.0};
 
         geometry_msgs::Pose2D desired_speeds;
         geometry_msgs::Pose2D desired_accelerations;
@@ -58,8 +58,8 @@ class MPC
         MPC()
         {
 
-            desired_speeds_pub = n.advertise<geometry_msgs::Pose2D>("/desired_speeds", 10);
-            desired_accelerations_pub = n.advertise<geometry_msgs::Pose2D>("/desired_speeds_derivative", 10);
+            desired_speeds_pub = n.advertise<geometry_msgs::Pose2D>("/desired_values", 10);
+            desired_accelerations_pub = n.advertise<geometry_msgs::Pose2D>("/desired_values_derivative", 10);
             desired_position_pub = n.advertise<geometry_msgs::Pose2D>("/desired_position", 10);
             cross_track_error_pub = n.advertise<std_msgs::Float64>("/cross_track_error", 10);
 
@@ -67,10 +67,10 @@ class MPC
             ins_pose_sub = n.subscribe("/vectornav/ins_2d/NED_pose", 10, &MPC::insCallback, this);
             local_vel_sub = n.subscribe("/vectornav/ins_2d/local_vel", 10, &MPC::velocityCallback, this);
 
-            //app = StageOCPApplicationBuilder::FromRockitInterface("/ws/foobar/casadi_codegen.so",
-            //"/ws/foobar/casadi_codegen.json");
-            app = StageOCPApplicationBuilder::FromRockitInterface("/home/alex/Documents/rockit/examples/ASV_examples/foobar/casadi_codegen.so",
-            "/home/alex/Documents/rockit/examples/ASV_examples/foobar/casadi_codegen.json");
+            app = StageOCPApplicationBuilder::FromRockitInterface("/ws/src/usv_ros/scripts/foobar/casadi_codegen.so",
+            "/ws/src/usv_ros/scripts/foobar/casadi_codegen.json");
+            //app = StageOCPApplicationBuilder::FromRockitInterface("/home/alex/Documents/rockit/examples/ASV_examples/foobar/casadi_codegen.so",
+            //"/home/alex/Documents/rockit/examples/ASV_examples/foobar/casadi_codegen.json");
 
             ///  no dynamic memory allocation
             // app->Optimize();
@@ -150,25 +150,24 @@ class MPC
             // TODO: figure out why an extra iteration
             
             auto param = app->GetParameterSetter("X_0");
-            const double x0[7] = {x, y, psi, u, v, r, s};
+            const double x0[6] = {x, y, psi, u, v, s};
             param->SetValue(x0);
-
+            
             app->Optimize();
-
-            //auto eval_expression = app->GetExpression("Urdot")->at_t0();
-            auto eval_expression = app->GetExprEvaluator("Urdot")->at_t0();
+            auto eval_expression = app->GetExpression("r")->at_t0();
+            //auto eval_expression = app->GetExprEvaluator("r")->at_t0();
             std::vector<double> u0_result(eval_expression -> Size());
 
-            //auto eval_r = app->GetExpression("r")->at_tk(1);
-            auto eval_r = app->GetExprEvaluator("r")->at_tk(1);
-            std::vector<double> r_result(eval_r -> Size());
+            auto eval_psi = app->GetExpression("psi")->at_tk(1);
+            //auto eval_psi = app->GetExprEvaluator("psi")->at_tk(1);
+            std::vector<double> psi_result(eval_psi -> Size());
 
-            //auto eval_s = app->GetExpression("s_min")->at_t0();
-            auto eval_s = app->GetExprEvaluator("s_min")->at_t0();
+            auto eval_s = app->GetExpression("s_min")->at_t0();
+            //auto eval_s = app->GetExprEvaluator("s_min")->at_t0();
             std::vector<double> s_result(eval_s -> Size());
 
             app->LastStageOCPSolution().Eval(eval_expression, u0_result);
-            app->LastStageOCPSolution().Eval(eval_r, r_result);
+            app->LastStageOCPSolution().Eval(eval_psi, psi_result);
             app->LastStageOCPSolution().Eval(eval_s, s_result);
             app->SetInitial(app->LastStageOCPSolution());
 
@@ -180,8 +179,11 @@ class MPC
 
             desired_speeds.x = 0.5;
             desired_speeds.y = starting_flag;
-            desired_speeds.theta = r_result[0];
+            desired_speeds.theta = psi_result[0];
             s = s_result[0];
+
+            desired_accelerations.x = 0.0;
+            desired_accelerations.theta = u0_result[0];
 
             x_d = desired_x(s);
             y_d = desired_y(s);
@@ -195,6 +197,7 @@ class MPC
             cross_track_error.data = ye;
 
             desired_speeds_pub.publish(desired_speeds);
+            desired_accelerations_pub.publish(desired_accelerations);
             desired_position_pub.publish(desired_position);
             cross_track_error_pub.publish(cross_track_error);
         }
