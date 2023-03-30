@@ -1,5 +1,4 @@
 <launch>
-
 <node name="aitsmc" pkg="usv_ros" type="aitsmc" >
   <param name = "k_u" value = "0.2" />
 	<param name = "k_r" value = "0.2" />
@@ -16,5 +15,4 @@
     <param name = "p_u" value = "5" />
 	<param name = "p_r" value = "5" />
 </node>
-
 </launch>

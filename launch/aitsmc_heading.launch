@@ -10,14 +10,14 @@
 	<param name = "mu_u" value = "0.05" />
 	<param name = "mu_psi" value = "0.05" />
 	<param name = "alpha_u" value = "1.0" />
-	<param name = "alpha_psi" value = "1.0" />
-	<param name = "beta_psi" value = "1.0" />
+	<param name = "alpha_psi" value = "0.50" />
+	<param name = "beta_psi" value = "0.50" />
     <param name = "q_u" value = "3" />
 	<param name = "q_psi" value = "3" />
     <param name = "p_u" value = "5" />
 	<param name = "p_psi" value = "5" />
 </node>
 
- <node type="record" pkg="rosbag" name="recorder" args="record -a" />
+ <!-- <node type="record" pkg="rosbag" name="recorder" args="record -a -o /ws/bags" /> -->
 
 </launch>

@@ -155,7 +155,7 @@ public:
     desired_speedsdot_sub = n.subscribe("/desired_speeds_derivative", 10, &AdaptiveSlidingModeControl::desiredTrajDotCallback, this);
     ins_pose_sub = n.subscribe("/vectornav/ins_2d/NED_pose", 10, &AdaptiveSlidingModeControl::insCallback, this);
     local_vel_sub = n.subscribe("/vectornav/ins_2d/local_vel", 10, &AdaptiveSlidingModeControl::velocityCallback, this);
-    odom_sub = n.subscribe("/imu/odometry", 10, &AdaptiveSlidingModeControl::odomCallback, this);
+    odom_sub = n.subscribe("/imu/converted_odometry", 10, &AdaptiveSlidingModeControl::odomCallback, this);
     //flag_sub = n.subscribe("/arduino_br/ardumotors/flag", 10, &AdaptiveSlidingModeControl::flagCallback, this);
     //ardu_sub = n.subscribe("arduino", 10, &AdaptiveSlidingModeControl::arduinoCallback, this);
 
@@ -248,13 +248,13 @@ public:
     m.getRPY(roll, pitch, yaw);
     psi = yaw;
 
-    x = o->pose.pose.position.y;
-    y = o->pose.pose.position.x;
+    x = o->pose.pose.position.x;
+    y = o->pose.pose.position.y;
     
     u = o->twist.twist.linear.x;
     v = o->twist.twist.linear.y;
     r = o->twist.twist.angular.z;
-    //ROS_INFO("x: %f, y: %f, u: %f v: %f, r: %f", x, y, u, v, r);  
+    ROS_INFO("x: %f, y: %f, u: %f v: %f, r: %f", x, y, u, v, r);  
   }
 
   /*void flagCallback(const std_msgs::UInt8::ConstPtr& _flag)

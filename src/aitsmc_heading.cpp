@@ -153,13 +153,14 @@ public:
     yaw_gain_pub = n.advertise<std_msgs::Float64>("/usv_control/aitsmc/heading_gain", 10);
     yaw_error_pub = n.advertise<std_msgs::Float64>("/usv_control/controller/heading_error", 10);
     control_input_pub = n.advertise<geometry_msgs::Pose2D>("/usv_control/controller/control_input", 10);
+    edot_psi_pub = n.advertise<std_msgs::Float64>("/usv_control/aitsmc/debug/edot_psi", 10);
 
     //ROS Subscribers
     desired_speeds_sub = n.subscribe("/desired_values", 10, &AdaptiveSlidingModeControl::desiredTrajCallback, this);
     desired_speedsdot_sub = n.subscribe("/desired_values_derivative", 10, &AdaptiveSlidingModeControl::desiredTrajDotCallback, this);
     ins_pose_sub = n.subscribe("/vectornav/ins_2d/NED_pose", 10, &AdaptiveSlidingModeControl::insCallback, this);
     local_vel_sub = n.subscribe("/vectornav/ins_2d/local_vel", 10, &AdaptiveSlidingModeControl::velocityCallback, this);
-    odom_sub = n.subscribe("/imu/odometry", 10, &AdaptiveSlidingModeControl::odomCallback, this);
+    odom_sub = n.subscribe("/imu/converted_odometry", 10, &AdaptiveSlidingModeControl::odomCallback, this);
     //flag_sub = n.subscribe("/arduino_br/ardumotors/flag", 10, &AdaptiveSlidingModeControl::flagCallback, this);
     //ardu_sub = n.subscribe("arduino", 10, &AdaptiveSlidingModeControl::arduinoCallback, this);
 
@@ -249,22 +250,18 @@ public:
         o->pose.pose.orientation.y,
         o->pose.pose.orientation.z,
         o->pose.pose.orientation.w);
-      tf::Matrix3x3 m(q);
-      double roll, pitch, yaw;
-      m.getRPY(roll, pitch, yaw);
-      psi = yaw;
+    tf::Matrix3x3 m(q);
+    double roll, pitch, yaw;
+    m.getRPY(roll, pitch, yaw);
+    psi = yaw;
 
-      //Te agregue signos negativos en y,psi,v,r porque odom por lo general es otro marco de referencia
-      x = o->pose.pose.position.y;
-      y = o->pose.pose.position.x;
-
-      double u_orig = o->twist.twist.linear.x;
-      double v_orig = -o->twist.twist.linear.y;
-
-      u = std::cos(psi) * u_orig - std::sin(psi) * v_orig;
-      v = -(std::sin(psi) * u_orig + std::cos(psi) * v_orig);
-      r = o->twist.twist.angular.z;
-      ROS_INFO("x: %f, y: %f, u: %f v: %f, r: %f psi: %f", x, y, u, v, r, psi);
+    x = o->pose.pose.position.x;
+    y = o->pose.pose.position.y;
+    
+    u = o->twist.twist.linear.x;
+    v = o->twist.twist.linear.y;
+    r = o->twist.twist.angular.z;
+    ROS_INFO("x: %f, y: %f, u: %f v: %f, r: %f psi: %f", x, y, u, v, r, psi);
   }
 
   /*void flagCallback(const std_msgs::UInt8::ConstPtr& _flag)
@@ -300,6 +297,9 @@ public:
       }
 
       edot_psi = r_d-r;
+      std_msgs::Float64 edot_psi_msg;
+      edot_psi_msg.data = edot_psi;
+      edot_psi_pub.publish(edot_psi_msg);
 
       if (e_u == 0){
         sign_u = 0;
@@ -478,6 +478,7 @@ private:
   ros::Publisher yaw_gain_pub;
   ros::Publisher yaw_error_pub;
   ros::Publisher control_input_pub;
+  ros::Publisher edot_psi_pub;
 
   ros::Subscriber desired_speeds_sub;
   ros::Subscriber desired_speedsdot_sub;

@@ -21,6 +21,8 @@ class MPC
         float x = 0.0;
         float y = 0.0;
         float psi = 0.0;
+        float psi_d = 0.0;
+        bool psi_d_initialized{false};
         float u = 0.0;
         float v = 0.0;
         float r = 0.0;
@@ -37,7 +39,7 @@ class MPC
         float x_amplitude = 1.5;
         float x_start = 1.0;
         float x_freq = 3*3.141592/40;
-        float y_multiplier = -1.0;
+        float y_multiplier = -1.5;
         float y_start = 1.0;
         float x_d;
         float y_d;
@@ -46,7 +48,7 @@ class MPC
         float gamma_p;
         float ye;
 
-        const double x0[6] = {1.0, 1.0, 1.0, 1.0, 1.0, 1.0};
+        const double x0[7] = {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0};
 
         geometry_msgs::Pose2D desired_speeds;
         geometry_msgs::Pose2D desired_accelerations;
@@ -63,12 +65,12 @@ class MPC
             desired_position_pub = n.advertise<geometry_msgs::Pose2D>("/desired_position", 10);
             cross_track_error_pub = n.advertise<std_msgs::Float64>("/cross_track_error", 10);
 
-            odom_sub = n.subscribe("/imu/odometry", 10, &MPC::odomCallback, this);
+            odom_sub = n.subscribe("/imu/converted_odometry", 10, &MPC::odomCallback, this);
             ins_pose_sub = n.subscribe("/vectornav/ins_2d/NED_pose", 10, &MPC::insCallback, this);
             local_vel_sub = n.subscribe("/vectornav/ins_2d/local_vel", 10, &MPC::velocityCallback, this);
 
-            app = StageOCPApplicationBuilder::FromRockitInterface("/ws/src/usv_ros/scripts/foobar/casadi_codegen.so",
-            "/ws/src/usv_ros/scripts/foobar/casadi_codegen.json");
+            app = StageOCPApplicationBuilder::FromRockitInterface("/ws/foobar/casadi_codegen.so",
+            "/ws/foobar/casadi_codegen.json");
             //app = StageOCPApplicationBuilder::FromRockitInterface("/home/alex/Documents/rockit/examples/ASV_examples/foobar/casadi_codegen.so",
             //"/home/alex/Documents/rockit/examples/ASV_examples/foobar/casadi_codegen.json");
 
@@ -98,8 +100,13 @@ class MPC
             m.getRPY(roll, pitch, yaw);
             psi = yaw;
 
-            x = o->pose.pose.position.y;
-            y = o->pose.pose.position.x;
+            if(!psi_d_initialized){
+                psi_d = psi;
+                psi_d_initialized = true;
+            }
+
+            x = o->pose.pose.position.x;
+            y = o->pose.pose.position.y;
             
             u = o->twist.twist.linear.x;
             v = o->twist.twist.linear.y;
@@ -146,7 +153,7 @@ class MPC
             // TODO: figure out why an extra iteration
             
             auto param = app->GetParameterSetter("X_0");
-            const double x0[6] = {x, y, psi, u, v, s};
+            const double x0[7] = {x, y, psi, u, v, psi_d, s};
             param->SetValue(x0);
             
             app->Optimize();
@@ -158,12 +165,16 @@ class MPC
             //auto eval_psi = app->GetExprEvaluator("psi")->at_tk(1);
             std::vector<double> psi_result(eval_psi -> Size());
 
+            auto eval_psi_d = app->GetExpression("psi_d")->at_tk(1);
+            std::vector<double> psi_d_result(eval_psi_d -> Size());
+
             auto eval_s = app->GetExpression("s_min")->at_t0();
             //auto eval_s = app->GetExprEvaluator("s_min")->at_t0();
             std::vector<double> s_result(eval_s -> Size());
 
             app->LastStageOCPSolution().Eval(eval_expression, u0_result);
             app->LastStageOCPSolution().Eval(eval_psi, psi_result);
+            app->LastStageOCPSolution().Eval(eval_psi_d, psi_d_result);
             app->LastStageOCPSolution().Eval(eval_s, s_result);
             app->SetInitial(app->LastStageOCPSolution());
 
@@ -175,7 +186,8 @@ class MPC
 
             desired_speeds.x = 0.5;
             desired_speeds.y = starting_flag;
-            desired_speeds.theta = psi_result[0];
+            desired_speeds.theta = psi_d_result[0];
+            psi_d = psi_d_result[0];
             s = s_result[0];
 
             desired_accelerations.x = 0.0;
