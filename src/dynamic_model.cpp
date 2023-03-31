@@ -293,7 +293,7 @@ class DynamicModel {
     dm_pose.y = y;
     dm_pose.theta = etheta;
     odom.pose.pose.position.x = x;
-    odom.pose.pose.position.y = -y;
+    odom.pose.pose.position.y = y;
     odom.pose.pose.position.z = 0;
 
     myQuaternion.setRPY(0.00, 0.00, etheta);

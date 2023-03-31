@@ -2,8 +2,8 @@
     <include file="$(find usv_ros)/launch/usv_simulation.launch"/>
     <include file="$(find usv_ros)/launch/sim_aitsmc_heading.launch"/>
     <include file="$(find foxglove_bridge)/launch/foxglove_bridge.launch"/>
-    <!-- <node name="wind" pkg="usv_ros" type="wind_and_waves"/> -->
-    <!-- <node name="mpc" pkg="usv_ros" type="mpc" output="screen"/> -->
-    <node name="mpc" pkg="usv_ros" type="mpc_heading" output="screen"/>
+    <node name="wind" pkg="usv_ros" type="wind_and_waves"/>
+    <node name="mpc" pkg="usv_ros" type="mpc" output="screen"/>
+    <!-- <node name="mpc" pkg="usv_ros" type="mpc_heading" output="screen"/> -->
     <!-- <node pkg="rosbag" type="record" name="bagger" args="-a" output="screen"/> -->
 </launch>
