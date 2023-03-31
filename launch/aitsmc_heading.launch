@@ -2,7 +2,7 @@
 
 <node name="aitsmc_heading" pkg="usv_ros" type="aitsmc_heading" >
   <param name = "k_u" value = "0.2" />
-	<param name = "k_psi" value = "0.2" />
+	<param name = "k_psi" value = "0.1" />
 	<param name = "kmin_u" value = "0.01" />
 	<param name = "kmin_psi" value = "0.01" />
 	<param name = "k2_u" value = "0.01" />
